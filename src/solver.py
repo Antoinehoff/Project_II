@@ -87,6 +87,18 @@ class Solver(object):
             self.opt.add_inequality_constraint(self.compliance_function)
             self.opt.add_inequality_constraint(self.volume_max_function)
             self.opt.add_inequality_constraint(self.volume_min_function)
+            
+            ####Added by Antoine Hoffmann EPFL 2018
+        elif self.problem_type == ProblemType.ComplianceWithSymmetry:
+            self.opt.set_min_objective(self.compliance_function)
+            self.opt.add_inequality_constraint(self.volume_max_function)
+            self.opt.add_inequality_constraint(self.volume_min_function)            
+        elif self.problem_type == ProblemType.AppearanceWithMaxComplianceAndSymmetry:
+            self.opt.set_min_objective(self.appearance_function)
+            self.opt.add_inequality_constraint(self.compliance_function)
+            self.opt.add_inequality_constraint(self.volume_max_function)
+            self.opt.add_inequality_constraint(self.volume_min_function)
+            ##############
 
     def guess_initial_state(self):
         # Lower and upper bounds
@@ -201,7 +213,7 @@ class Solver(object):
             self.enforce_volume_constraint(x, self.volume_min_function)
             x = self.enforce_compliance_constraint(x)
             print("Enforcing constraints: done")
-
+		
         # Launch optimization
         x = self.opt.optimize(x)
         print("* Last optimum value = " + str(self.opt.last_optimum_value()))
@@ -307,3 +319,41 @@ class Solver(object):
 
         print("- Appearance = %.3f" % (sim))
         return sim - self.appearance_max
+        
+########################### Symmetry functions added by Antoine Hoffmann EPFL 2018
+
+    def design_variable_merge(self, x, nelx, nely):
+		"""
+		Implementation of the algorithm from Kosaka and Swan 1999
+		"""
+				
+		return x
+	
+    def index_to_position(index, nelx, nely):
+		"""
+		Convert the index of a element to a position on the grid
+		"""
+		
+		return np.array([index % nely, int(index / nelx)])
+
+"""
+class Symmetric_Solver(Solver): 
+	
+	def __init__(self, nelx, nely, params, problem_type, bc, gui=None):
+		
+		Solver.__init__(self, nelx, nely, params, problem_type, bc, gui=None)
+    
+	def design_variable_merge(self, x, nelx, nely):
+		""
+		Implementation of the algorithm from Kosaka and Swan 1999
+		""
+		return x
+	
+	def index_to_position(index, nelx, nely):
+		""
+		Convert the index of a element to a position on the grid
+		""
+		
+		return np.array([index % nely, int(index / nelx)])
+"""
+###########################

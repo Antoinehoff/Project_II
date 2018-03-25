@@ -19,12 +19,12 @@ def multires(nelx, nely, params, bc):
         if x is not None:
             # Upsample previous solution
             x = images.upsample(x, nelx, nely)
-            if params.problemType == ProblemType.AppearanceWithMaxCompliance:
+            if params.problemType == ProblemType.AppearanceWithMaxCompliance or params.problemType==ProblemType.AppearanceWithMaxComplianceAndSymmetry:
                 x_comp = images.upsample(x_comp, nelx, nely)
         gui = None
         if params.hasGui:
             gui = Gui(nelx, nely)
-        if params.problemType == ProblemType.AppearanceWithMaxCompliance:
+        if params.problemType==ProblemType.AppearanceWithMaxCompliance or params.problemType==ProblemType.AppearanceWithMaxComplianceAndSymmetry:
             params.complianceMax = 0
             solver = Solver(nelx, nely, params, ProblemType.Compliance, bc, gui)
             x_comp = solver.optimize(x_comp)
@@ -34,6 +34,11 @@ def multires(nelx, nely, params, bc):
 
         # Solve problem
         solver = Solver(nelx, nely, params, params.problemType, bc, gui)
+        
+        #######Added by Antoine Hoffmann EPFL 2018
+        if params.problemType == ProblemType.AppearanceWithMaxComplianceAndSymmetry or params.problemType == ProblemType.ComplianceWithSymmetry:
+			print("-------------Symmetric Problem--------------")
+        #######
         x = solver.optimize(x, enforce_constraints=(level > 0))
         if params.hasGui:
             solver.filtering.filter_variables(x, solver.x_phys)
@@ -53,6 +58,6 @@ def multires(nelx, nely, params, bc):
     results = {
         "last_optimum": solver.last_optimum_value(),
         "volume": sum(solver.x_phys) / len(solver.x_phys)}
-    if params.problemType == ProblemType.AppearanceWithMaxCompliance:
+    if params.problemType == ProblemType.AppearanceWithMaxCompliance  or params.problemType==ProblemType.AppearanceWithMaxComplianceAndSymmetry:
         results["compliance_factor"] = solver.compliance_max / min_compliance
     return (solver.x_phys, nelx, nely, results)
