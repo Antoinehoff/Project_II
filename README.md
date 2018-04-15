@@ -1,4 +1,4 @@
-Code derived from the code of the paper :
+This is an adaptation and extension of the code of [1] in the frame of a semester project at EPFL Lausanne. 
 
 > [Structure and Appearance Optimization for Controllable Shape Design][1]<br>
 > Jonàs Martínez, Jérémie Dumas, Sylvain Lefebvre, Li-Yi Wei<br>
