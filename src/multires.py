@@ -2,6 +2,8 @@ from common import ProblemType
 from solver import Solver
 from gui import Gui
 import images
+import connection_table as ct
+import numpy
 
 
 def multires(nelx, nely, params, bc):
@@ -32,13 +34,17 @@ def multires(nelx, nely, params, bc):
             params.complianceMax = min_compliance * params.complianceMaxFactor
             print("")
 
-        # Solve problem
-        solver = Solver(nelx, nely, params, params.problemType, bc, gui)
-        
-        #######Added by Antoine Hoffmann EPFL 2018
+        ###Added by Antoine Hoffmann EPFL 2018
         if params.problemType == ProblemType.AppearanceWithMaxComplianceAndSymmetry or params.problemType == ProblemType.ComplianceWithSymmetry:
-			print("-------------Symmetric Problem--------------")
-        #######
+            print("-> Constructing connection table...")
+            a_array = numpy.array(params.a)
+            c_array = numpy.array(params.c)
+            connection_table = ct.construct_connection_table_parallel(a_array,c_array,nelx,nely)
+        ###
+
+        # Solve problem
+        solver = Solver(nelx, nely, params, params.problemType, bc, gui, connection_table)
+
         x = solver.optimize(x, enforce_constraints=(level > 0))
         if params.hasGui:
             solver.filtering.filter_variables(x, solver.x_phys)

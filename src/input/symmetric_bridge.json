@@ -26,5 +26,7 @@
 	"youngModulusMax": 1.0,
 	"youngModulusMin": 1e-09,
 	"materialDensity": 0.0001,
-	"symmetry_plane" : true 
+	"symmetry_plane" : true,
+	"a":[[1,0]],
+	"c":[[0.5,0.5]]
 }

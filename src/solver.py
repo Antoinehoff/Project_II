@@ -10,10 +10,19 @@ from filter import Filter
 from topopt import TopoptProblem
 from appearance import AppearanceCL
 
+### Added by Antoine Hoffmann EPFL 2018
+# For parallel computing and perf. measurement
+from joblib import Parallel, delayed
+import multiprocessing
+import time
+###
+
+def unwrap_self_parallelProcess(tab):
+    return Solver.parallelProcess(tab)
 
 class Solver(object):
 
-    def __init__(self, nelx, nely, params, problem_type, bc, gui=None):
+    def __init__(self, nelx, nely, params, problem_type, bc, gui=None, connection_table=[]):
         """
         Allocate and initialize internal data structures.
         """
@@ -70,6 +79,15 @@ class Solver(object):
         # Set GUI callback
         self.gui = gui
 
+        #### Symmetry extension added by Antoine Hoffmann EPFL 2018
+        self.connection_table = connection_table #map symmetry
+
+    def enforce_symmetry_constraint(self,x):
+        for i in range(self.nelx*self.nely):
+            if self.connection_table[i]> -1:
+                self.x[i]=self.x[self.connection_table[i]]
+        ####
+
     def init_problem(self):
         """
         Define objective function, constraint functions, and constraints rhs.
@@ -87,13 +105,15 @@ class Solver(object):
             self.opt.add_inequality_constraint(self.compliance_function)
             self.opt.add_inequality_constraint(self.volume_max_function)
             self.opt.add_inequality_constraint(self.volume_min_function)
-            
+
             ####Added by Antoine Hoffmann EPFL 2018
         elif self.problem_type == ProblemType.ComplianceWithSymmetry:
+            self.sym_bool = True
             self.opt.set_min_objective(self.compliance_function)
             self.opt.add_inequality_constraint(self.volume_max_function)
-            self.opt.add_inequality_constraint(self.volume_min_function)            
+            self.opt.add_inequality_constraint(self.volume_min_function)
         elif self.problem_type == ProblemType.AppearanceWithMaxComplianceAndSymmetry:
+            self.sym_bool = True
             self.opt.set_min_objective(self.appearance_function)
             self.opt.add_inequality_constraint(self.compliance_function)
             self.opt.add_inequality_constraint(self.volume_max_function)
@@ -213,7 +233,12 @@ class Solver(object):
             self.enforce_volume_constraint(x, self.volume_min_function)
             x = self.enforce_compliance_constraint(x)
             print("Enforcing constraints: done")
-		
+
+        ###Added by Antoine Hoffmann EPFL 2018
+        if len(self.connection_table)==self.nelx*self.nely:
+            self.enforce_symmetry_constraint(x)
+        ###
+
         # Launch optimization
         x = self.opt.optimize(x)
         print("* Last optimum value = " + str(self.opt.last_optimum_value()))
@@ -319,41 +344,3 @@ class Solver(object):
 
         print("- Appearance = %.3f" % (sim))
         return sim - self.appearance_max
-        
-########################### Symmetry functions added by Antoine Hoffmann EPFL 2018
-
-    def design_variable_merge(self, x, nelx, nely):
-		"""
-		Implementation of the algorithm from Kosaka and Swan 1999
-		"""
-				
-		return x
-	
-    def index_to_position(index, nelx, nely):
-		"""
-		Convert the index of a element to a position on the grid
-		"""
-		
-		return np.array([index % nely, int(index / nelx)])
-
-"""
-class Symmetric_Solver(Solver): 
-	
-	def __init__(self, nelx, nely, params, problem_type, bc, gui=None):
-		
-		Solver.__init__(self, nelx, nely, params, problem_type, bc, gui=None)
-    
-	def design_variable_merge(self, x, nelx, nely):
-		""
-		Implementation of the algorithm from Kosaka and Swan 1999
-		""
-		return x
-	
-	def index_to_position(index, nelx, nely):
-		""
-		Convert the index of a element to a position on the grid
-		""
-		
-		return np.array([index % nely, int(index / nelx)])
-"""
-###########################
