@@ -17,17 +17,17 @@ import numpy
 import scipy.misc
 import scipy
 
-# For parallel computing
-from joblib import Parallel, delayed
-import multiprocessing
-import time
-
-
 def index_to_position(index, nelx, nely):
 	"""
 	Convert the index of a element to the centroid of the element
 	"""
 	return numpy.array([(index % nelx)+.5, int(index/nelx)+.5])
+
+def position_to_index(v, nelx, nely):
+	"""
+	Convert a position vector to the index of the element containing it
+	"""
+	return int(v[0]) + int(v[1])*nelx
 
 def add_symmetry_planes(a_array, c_array, a, c, empty = 0):
 	"""
@@ -52,14 +52,90 @@ def get_symmetry_image(a_array, c_array, nelx, nely):
 	rmax = numpy.sqrt(numpy.dot(Xmax-Xmin,Xmax-Xmin)) #Length scale of mesh
 	for i in range(nelx*nely):
 		X_i = index_to_position(i, nelx, nely)
-		if(not in_domain(X_i, a_array, c_array, 0.000001, rmax)):
+		if(in_domain(X_i, a_array, c_array)==0):
 			image[i] = .5;
+		if(in_domain(X_i, a_array, c_array)==2):
+			image[i]=0;
 	return (image.reshape(nely,nelx))
 
-def in_domain(X, a_array, c_array, epsilon, rmax):
+def in_domain(X, a_array, c_array):
 	"""
 	Check is a given point is inside or outside the design domain
 	"""
+	flag = 1
+	for n in range(numpy.shape(a_array)[0]):
+		a = a_array[n]
+		c = c_array[n]
+		dist = numpy.dot(X-c,a)
+		if(dist > 0.7):
+			flag = 0
+		if(abs(dist)<0.7):
+			flag = 2
+	return flag
+
+def get_symmetric_element(index, a, c, nelx, nely):
+	"""
+	Return the index of the symmetric element w.r.t. a plane a,c
+	"""
+	x_i = index_to_position(index,nelx,nely)
+	dist = numpy.dot(x_i-c,a)
+	x_proj = x_i - dist * a
+	x_sym = x_proj - dist * a
+	index_sym = position_to_index(x_sym,nelx,nely)
+	return index_sym
+
+def construct_connection_table(a_array, c_array, nelx, nely):
+	"""
+	Simple algorithm O(nelx*nely) to construct the table containing
+	for an element i, outside the design domain, its symmetric
+	element j inside the design domain. connection_table[i]=j if i is outside the
+	domain, =-1 if it is inside the domain or have no symmetric element.
+	"""
+	connection_table = numpy.array(range(nelx*nely))
+	for n in range(numpy.shape(a_array)[0]):
+		print(len(a_array))
+		a = a_array[n]
+		c = c_array[n]
+		for i in range(nelx*nely):
+			X_i = index_to_position(i,nelx,nely)
+			index_sym = connection_table[i]
+			if in_domain(X_i, [a], [c])!=1:
+					index_sym = connection_table[get_symmetric_element(i,a,c,nelx,nely)]
+			connection_table[i]=index_sym
+	return connection_table
+
+def construct_mapping_vector(connection_table):
+	mapping_vector = [[] for i in range(len(connection_table))]
+	for i in range(len(connection_table)):
+		mapping_vector[connection_table[i]].append(i)
+
+	mapping_vector = [mapping_vector[i] for i in range(len(connection_table)) if len(mapping_vector[i])>0]
+	return mapping_vector
+
+def get_sym_indep_indices(connection_table):
+	indices=[]
+	for i in range(len(connection_table)):
+		if connection_table[i]==i:
+			indices.append(i)
+	return indices
+
+def apply_symm_to_grad(grad,mapping_vector):
+	grad_mean = grad
+	for i in range(len(mapping_vector)):
+		sublist=mapping_vector[i]
+		S = len(sublist)
+		mean = sum(grad[j] for j in sublist)/S
+		for index in sublist:
+			grad_mean[index]=mean
+	return grad_mean
+
+""" OLD VERSION (KOSAKA AND SWANN
+	Implementation of the algorithm from Kosaka and Swan 1999 to construct the
+	table containing for an element i, outside the design domain, its symmetric
+	element j inside the design domain. connection_table[i]=j if i is outside the
+	domain, =-1 if it is inside the domain or have no symmetric element.
+
+def in_domain(X, a_array, c_array, epsilon, rmax):
 	flag = True
 	for n in range(numpy.shape(a_array)[0]):
 		a = a_array[n]
@@ -68,14 +144,19 @@ def in_domain(X, a_array, c_array, epsilon, rmax):
 			flag = False
 	return flag
 
+def in_domain(X, a_array, c_array):
+	flag = 1
+	for n in range(numpy.shape(a_array)[0]):
+		a = a_array[n]
+		c = c_array[n]
+		dist = numpy.dot(X-c,a)
+		if(dist > 0.7):
+			flag = 0
+		if(abs(dist)<0.7):
+			flag = 2
+	return flag
 
 def construct_connection_table(a_array, c_array, nelx, nely):
-	"""
-	Implementation of the algorithm from Kosaka and Swan 1999 to construct the
-	table containing for an element i, outside the design domain, its symmetric
-	element j inside the design domain. connection_table[i]=j if i is outside the
-	domain, =-1 if it is inside the domain or have no symmetric element.
-	"""
 	Xmin = index_to_position(0, nelx, nely)
 	print 'Xmin = {0}'.format(Xmin)
 	Xmax = index_to_position(nelx*nely-1, nelx, nely)
@@ -116,10 +197,6 @@ def construct_connection_table(a_array, c_array, nelx, nely):
 	return connection_table.astype(int)
 
 def construct_connection_table_parallel(a_array, c_array, nelx, nely):
-	"""
-	Adaptation of the function construct_connection_table but with a parallelization
-	of the main loop.
-	"""
 	#Initialization phase
 	start = time.time()
 	Xmin = index_to_position(0, nelx, nely)
@@ -146,9 +223,6 @@ def construct_connection_table_parallel(a_array, c_array, nelx, nely):
 	return connection_table.astype(int)
 
 def parallelProcess(a_array, c_array, n, nelx, nely, rmax, epsilon_1, epsilon_2, i):
-	"""
-	Task to be done in parallel for construct_connection_table_parallel
-	"""
 	a = a_array[n]
 	c = c_array[n]
 	nmast=-1
@@ -167,3 +241,5 @@ def parallelProcess(a_array, c_array, n, nelx, nely, rmax, epsilon_1, epsilon_2,
 						nmast=j
 						dmin=abs(numpy.linalg.norm(X_i_proj - X_i)-numpy.linalg.norm(X_i_proj - X_j))
 	return nmast
+
+"""

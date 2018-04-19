@@ -35,15 +35,23 @@ def multires(nelx, nely, params, bc):
             print("")
 
         ###Added by Antoine Hoffmann EPFL 2018
-        if params.problemType == ProblemType.AppearanceWithMaxComplianceAndSymmetry or params.problemType == ProblemType.ComplianceWithSymmetry:
+        if params.problemType == ProblemType.AppearanceWithMaxComplianceAndSymmetry \
+        or params.problemType == ProblemType.ComplianceWithSymmetry:
             print("-> Constructing connection table...")
             a_array = numpy.array(params.a)
             c_array = numpy.array(params.c)
-            connection_table = ct.construct_connection_table_parallel(a_array,c_array,nelx,nely)
+            scale_matrix = numpy.array([[nelx,0],[0,nely]])
+            c_array = [numpy.dot(scale_matrix,c_array[i]) for i in range(len(c_array))]
+            print("a_array : " + str(a_array))
+            print("c_array : " + str(c_array))
+            connection_table = ct.construct_connection_table(a_array,c_array,nelx,nely)
+            mapping_vector = ct.construct_mapping_vector(connection_table)
+            # Solve problem
+            solver = Solver(nelx, nely, params, params.problemType,\
+                            bc, gui, mapping_vector)
         ###
-
-        # Solve problem
-        solver = Solver(nelx, nely, params, params.problemType, bc, gui, connection_table)
+        else:
+            solver = Solver(nelx, nely, params, params.problemType, bc, gui)
 
         x = solver.optimize(x, enforce_constraints=(level > 0))
         if params.hasGui:

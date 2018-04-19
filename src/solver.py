@@ -10,19 +10,9 @@ from filter import Filter
 from topopt import TopoptProblem
 from appearance import AppearanceCL
 
-### Added by Antoine Hoffmann EPFL 2018
-# For parallel computing and perf. measurement
-from joblib import Parallel, delayed
-import multiprocessing
-import time
-###
-
-def unwrap_self_parallelProcess(tab):
-    return Solver.parallelProcess(tab)
-
 class Solver(object):
 
-    def __init__(self, nelx, nely, params, problem_type, bc, gui=None, connection_table=[]):
+    def __init__(self, nelx, nely, params, problem_type, bc, gui=None, mapping_vector=[]):
         """
         Allocate and initialize internal data structures.
         """
@@ -80,12 +70,12 @@ class Solver(object):
         self.gui = gui
 
         #### Symmetry extension added by Antoine Hoffmann EPFL 2018
-        self.connection_table = connection_table #map symmetry
-
+        self.mapping_vector = mapping_vector #map symmetry
+        self.indep_element = [mapping_vector[i][0] for i in range(len(mapping_vector))]
     def enforce_symmetry_constraint(self,x):
-        for i in range(self.nelx*self.nely):
-            if self.connection_table[i]> -1:
-                self.x[i]=self.x[self.connection_table[i]]
+        for i in range(len(self.mapping_vector)):
+            for index in mapping_vector[i]:
+                x[index]=x[mapping_vector[i][0]]
         ####
 
     def init_problem(self):
@@ -214,8 +204,22 @@ class Solver(object):
         self.init_problem()
         return x
 
+    ###Added by Antoine Hoffmann EPFL 2018
+    def apply_symm_to_grad(self,grad):
+    	grad_mean = grad
+    	for i in range(len(self.mapping_vector)):
+    		sublist=self.mapping_vector[i]
+    		S = len(sublist)
+    		mean = sum(grad[j] for j in sublist)/S
+    		for index in sublist:
+    			grad_mean[index]=mean
+    	return grad_mean
+    ###
+
     def optimize(self, x, enforce_constraints=True):
         print("* " + str(self.problem_type))
+        print("Frac of Independent variables : " + \
+               str(len(self.indep_element)*100.0/(self.nelx*self.nely))+'%')
         lb = self.opt.get_lower_bounds()
         ub = self.opt.get_upper_bounds()
 
@@ -235,8 +239,8 @@ class Solver(object):
             print("Enforcing constraints: done")
 
         ###Added by Antoine Hoffmann EPFL 2018
-        if len(self.connection_table)==self.nelx*self.nely:
-            self.enforce_symmetry_constraint(x)
+#        if len(self.mapping_vector)==self.nelx*self.nely:
+#            self.enforce_symmetry_constraint(x)
         ###
 
         # Launch optimization
@@ -268,9 +272,12 @@ class Solver(object):
         # Sensitivity filtering
         if dc is not None:
             self.filtering.filter_compliance_sensitivities(self.x_phys, dc)
+            if(self.problem_type==ProblemType.ComplianceWithSymmetry or\
+               self.problem_type==ProblemType.AppearanceWithMaxComplianceAndSymmetry):
+               dc = self.apply_symm_to_grad(dc)
 
         print("- Compliance = %.3f" % (obj))
-
+        print(len(dc))
         return obj - self.compliance_max
 
     def volume_max_function(self, x, dv=None):
