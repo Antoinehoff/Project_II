@@ -15,24 +15,7 @@ class BaseProblem(object):
             Other parameters specific to this problem description.
         """
         return None
-        
-    #New method added by Antoine Hoffmann EPFL 2018
-    @staticmethod
-    def get_symmetry_plane(nelx,nely):
-		"""
-		
-		Method to obtain the symmetry planes if they exist.
-		
-		Parameters
-		----------
-		nelx : int
-            Width of the domain at the current level.
-        nely : int
-            Height of the domain at the current level.
-        """
-		return None
-	############################
-	
+
     @staticmethod
     def set_forces(nelx, nely, f, params):
         """
@@ -91,4 +74,3 @@ class BaseProblem(object):
 
         """
         pass
-        

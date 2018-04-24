@@ -277,7 +277,6 @@ class Solver(object):
                dc = self.apply_symm_to_grad(dc)
 
         print("- Compliance = %.3f" % (obj))
-        print(len(dc))
         return obj - self.compliance_max
 
     def volume_max_function(self, x, dv=None):
@@ -348,6 +347,9 @@ class Solver(object):
         if da is not None:
             # Sensitivity filtering
             self.filtering.filter_appearance_sensitivities(self.x_phys, da)
+            if(self.problem_type==ProblemType.ComplianceWithSymmetry or\
+               self.problem_type==ProblemType.AppearanceWithMaxComplianceAndSymmetry):
+               da = self.apply_symm_to_grad(da)
 
         print("- Appearance = %.3f" % (sim))
         return sim - self.appearance_max
