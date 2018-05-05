@@ -10,7 +10,7 @@ class BoundaryConditions(base.BaseProblem):
     @staticmethod
     def set_forces(nelx, nely, f, params):
         for x in range(nelx):
-			f[2 * ((nely + 1) * x + nely *0) + 1] = -1/nelx
+			f[2 * ((nely + 1) * x + 0)+1] = -1.0/nelx
 
     @staticmethod
     def set_passive_elements(nelx, nely, lb, ub, params):

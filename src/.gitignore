@@ -1,2 +1,5 @@
 tests_folder
 output
+*.out
+*.png
+*.txt

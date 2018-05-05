@@ -11,6 +11,7 @@ import os
 import json
 import argparse
 import importlib
+import sys
 
 # Third party libs
 import numpy
@@ -21,13 +22,15 @@ def index_to_position(index, nelx, nely):
 	"""
 	Convert the index of a element to the centroid of the element
 	"""
-	return numpy.array([(index % nelx)+.5, int(index/nelx)+.5])
+	pos = numpy.array([(index / (nely))+.5, int(index%(nely))+.5])
+	return pos
 
-def position_to_index(v, nelx, nely):
+def position_to_index(pos, nelx, nely):
 	"""
 	Convert a position vector to the index of the element containing it
 	"""
-	return int(v[0]) + int(v[1])*nelx
+	index = int(pos[0])*nely + int(pos[1])
+	return index
 
 def add_symmetry_planes(a_array, c_array, a, c, empty = 0):
 	"""
@@ -75,7 +78,7 @@ def in_domain(X, a_array, c_array):
 
 def get_symmetric_element(index, a, c, nelx, nely):
 	"""
-	Return the index of the symmetric element w.r.t. a plane a,c
+	Return the index of the symmetric element w.r.t. a plane (a,c)
 	"""
 	x_i = index_to_position(index,nelx,nely)
 	dist = numpy.dot(x_i-c,a)
@@ -93,22 +96,22 @@ def construct_connection_table(a_array, c_array, nelx, nely):
 	"""
 	connection_table = numpy.array(range(nelx*nely))
 	for n in range(numpy.shape(a_array)[0]):
-		print(len(a_array))
 		a = a_array[n]
 		c = c_array[n]
 		for i in range(nelx*nely):
 			X_i = index_to_position(i,nelx,nely)
 			index_sym = connection_table[i]
 			if in_domain(X_i, [a], [c])!=1:
-					index_sym = connection_table[get_symmetric_element(i,a,c,nelx,nely)]
+				index_sym = connection_table[get_symmetric_element(i,a,c,nelx,nely)]
 			connection_table[i]=index_sym
+#	print(connection_table.reshape(nelx,nely))
+#	sys.exit('Stop')
 	return connection_table
 
 def construct_mapping_vector(connection_table):
 	mapping_vector = [[] for i in range(len(connection_table))]
 	for i in range(len(connection_table)):
 		mapping_vector[connection_table[i]].append(i)
-
 	mapping_vector = [mapping_vector[i] for i in range(len(connection_table)) if len(mapping_vector[i])>0]
 	return mapping_vector
 

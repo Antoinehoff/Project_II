@@ -72,10 +72,8 @@ class Solver(object):
         #### Symmetry extension added by Antoine Hoffmann EPFL 2018
         self.mapping_vector = mapping_vector #map symmetry
         self.indep_element = [mapping_vector[i][0] for i in range(len(mapping_vector))]
-    def enforce_symmetry_constraint(self,x):
-        for i in range(len(self.mapping_vector)):
-            for index in mapping_vector[i]:
-                x[index]=x[mapping_vector[i][0]]
+        self.sym_bool = False
+        self.histories = {'Compliance':[], 'Appearance':[]}
         ####
 
     def init_problem(self):
@@ -102,6 +100,9 @@ class Solver(object):
             self.opt.set_min_objective(self.compliance_function)
             self.opt.add_inequality_constraint(self.volume_max_function)
             self.opt.add_inequality_constraint(self.volume_min_function)
+             #TEST
+#            self.opt.add_inequality_constraint(self.symmetry_inequality)
+            #
         elif self.problem_type == ProblemType.AppearanceWithMaxComplianceAndSymmetry:
             self.sym_bool = True
             self.opt.set_min_objective(self.appearance_function)
@@ -206,20 +207,26 @@ class Solver(object):
 
     ###Added by Antoine Hoffmann EPFL 2018
     def apply_symm_to_grad(self,grad):
+        """
+        Perform equation in chapter 5.2 of Martinez et al. paper
+        from the mapping_vector list which contains lists of the
+        symmetric elements.
+        """
     	grad_mean = grad
-    	for i in range(len(self.mapping_vector)):
-    		sublist=self.mapping_vector[i]
-    		S = len(sublist)
-    		mean = sum(grad[j] for j in sublist)/S
-    		for index in sublist:
-    			grad_mean[index]=mean
-    	return grad_mean
+        for sublist in self.mapping_vector:
+            mean = 0
+            S = len(sublist)
+            mean = sum(grad[j] for j in sublist)/S
+            for j in sublist:
+                grad_mean[j] = mean
+    	grad[:] = grad_mean[:]
+
+    def get_histories(self):
+        return self.histories
     ###
 
     def optimize(self, x, enforce_constraints=True):
         print("* " + str(self.problem_type))
-        print("Frac of Independent variables : " + \
-               str(len(self.indep_element)*100.0/(self.nelx*self.nely))+'%')
         lb = self.opt.get_lower_bounds()
         ub = self.opt.get_upper_bounds()
 
@@ -238,14 +245,17 @@ class Solver(object):
             x = self.enforce_compliance_constraint(x)
             print("Enforcing constraints: done")
 
-        ###Added by Antoine Hoffmann EPFL 2018
-#        if len(self.mapping_vector)==self.nelx*self.nely:
-#            self.enforce_symmetry_constraint(x)
-        ###
-
         # Launch optimization
         x = self.opt.optimize(x)
         print("* Last optimum value = " + str(self.opt.last_optimum_value()))
+        ### Tests:
+#        for i in range(self.nelx):
+#            x[self.nely * i + 10]=1
+#        for sublist in self.mapping_vector:
+#            temp = x[sublist[0]]
+#            for index in sublist:
+#                x[index]=temp
+        ###
         return x
 
     def last_optimum_value(self):
@@ -268,15 +278,17 @@ class Solver(object):
 
         # Compliance and sensitivity
         obj = self.problem.compute_compliance(self.x_phys, dc)
+        ###
 
         # Sensitivity filtering
         if dc is not None:
             self.filtering.filter_compliance_sensitivities(self.x_phys, dc)
             if(self.problem_type==ProblemType.ComplianceWithSymmetry or\
                self.problem_type==ProblemType.AppearanceWithMaxComplianceAndSymmetry):
-               dc = self.apply_symm_to_grad(dc)
-
+               self.apply_symm_to_grad(dc)
         print("- Compliance = %.3f" % (obj))
+        if self.params.record_histories == True:
+            self.histories['Compliance'].append(obj)
         return obj - self.compliance_max
 
     def volume_max_function(self, x, dv=None):
@@ -349,7 +361,8 @@ class Solver(object):
             self.filtering.filter_appearance_sensitivities(self.x_phys, da)
             if(self.problem_type==ProblemType.ComplianceWithSymmetry or\
                self.problem_type==ProblemType.AppearanceWithMaxComplianceAndSymmetry):
-               da = self.apply_symm_to_grad(da)
-
+               self.apply_symm_to_grad(da)
         print("- Appearance = %.3f" % (sim))
+        if self.params.record_histories == True:
+            self.histories['Appearance'].append(sim)
         return sim - self.appearance_max

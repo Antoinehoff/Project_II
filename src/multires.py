@@ -15,6 +15,9 @@ def multires(nelx, nely, params, bc):
     downsampling = 2**(params.numLevels - 1)
     params.exemplarDownsampling *= downsampling
 
+    #To record Compliance and Appearance evolution
+    aggregated_hist={}
+
     # Multires synthesis
     for level in range(params.numLevels):
         print("*** Level " + str(level))
@@ -26,7 +29,7 @@ def multires(nelx, nely, params, bc):
         gui = None
         if params.hasGui:
             gui = Gui(nelx, nely)
-        if params.problemType==ProblemType.AppearanceWithMaxCompliance or params.problemType==ProblemType.AppearanceWithMaxComplianceAndSymmetry:
+        if params.problemType==ProblemType.AppearanceWithMaxCompliance:
             params.complianceMax = 0
             solver = Solver(nelx, nely, params, ProblemType.Compliance, bc, gui)
             x_comp = solver.optimize(x_comp)
@@ -42,10 +45,19 @@ def multires(nelx, nely, params, bc):
             c_array = numpy.array(params.c)
             scale_matrix = numpy.array([[nelx,0],[0,nely]])
             c_array = [numpy.dot(scale_matrix,c_array[i]) for i in range(len(c_array))]
+            a_array = [numpy.array(a/numpy.sqrt(numpy.dot(a,a))) for a in a_array]
             print("a_array : " + str(a_array))
             print("c_array : " + str(c_array))
             connection_table = ct.construct_connection_table(a_array,c_array,nelx,nely)
             mapping_vector = ct.construct_mapping_vector(connection_table)
+            if params.problemType==ProblemType.AppearanceWithMaxComplianceAndSymmetry:
+                params.complianceMax = 0
+                solver = Solver(nelx, nely, params, ProblemType.ComplianceWithSymmetry,\
+                                bc, gui, mapping_vector)
+                x_comp = solver.optimize(x_comp)
+                min_compliance = solver.last_optimum_value()
+                params.complianceMax = min_compliance * params.complianceMaxFactor
+                print("")
             # Solve problem
             solver = Solver(nelx, nely, params, params.problemType,\
                             bc, gui, mapping_vector)
@@ -57,6 +69,12 @@ def multires(nelx, nely, params, bc):
         if params.hasGui:
             solver.filtering.filter_variables(x, solver.x_phys)
             gui.update(solver.x_phys)
+
+        ### Antoine Hoffmann 2018 EPFL
+        #Store histories of the compliance and appearance evolution
+        if params.record_histories==True:
+            aggregated_hist['level'+str(level)]=solver.get_histories()
+        ###
 
         # Go to next level
         if level < params.numLevels - 1:
@@ -74,4 +92,4 @@ def multires(nelx, nely, params, bc):
         "volume": sum(solver.x_phys) / len(solver.x_phys)}
     if params.problemType == ProblemType.AppearanceWithMaxCompliance  or params.problemType==ProblemType.AppearanceWithMaxComplianceAndSymmetry:
         results["compliance_factor"] = solver.compliance_max / min_compliance
-    return (solver.x_phys, nelx, nely, results)
+    return (solver.x_phys, nelx, nely, results, aggregated_hist)

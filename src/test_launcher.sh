@@ -8,9 +8,9 @@ fi
 #Parameters to study :
 appearanceNormWeight=100.0 #not very influent
 complianceMaxFactor=1.2
-exemplarDownsampling=3 #Reduce the size of the pattern input w.r.t. the domain
-exponentSimilarityMetric=2.6 #higher -> force the ressemblance to the pattern
-filterRadius=1.1 #smaller -> higher grain definition of the output
+exemplarDownsampling=3.0 #Reduce the size of the pattern input w.r.t. the domain
+exponentSimilarityMetric=1.2 #higher -> force the ressemblance to the pattern
+filterRadius=1.1 #Control the smoother of the gradient in a local neighborhood
 neighborhoodSize=20 #smaller -> will try to replicate more the pattern given
 patchMatchIter=50 #higher -> more pattern accurate
 penalty=4.0 #
