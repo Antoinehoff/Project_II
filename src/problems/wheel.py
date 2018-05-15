@@ -9,7 +9,7 @@ class BoundaryConditions(base.BaseProblem):
     @staticmethod
     def get_fixed_nodes(nelx, nely, params):
         """
-        Center and ground only are fixed
+        Center only
         """
         return [(nelx/2,nely/2,0),(nelx/2,nely/2,1)]
 
