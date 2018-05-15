@@ -2,7 +2,7 @@
 	"appearanceNormWeight": 100.0,
 	"complianceMaxFactor": 1.2,
 	"densityMin": 0.0,
-	"exemplarDownsampling": 3.0,
+	"exemplarDownsampling": 2.5,
 	"exemplarPath": "../img/cells.ppm",
 	"exponentSimilarityMetric": 1.2,
 	"filterRadius": 1.5,
