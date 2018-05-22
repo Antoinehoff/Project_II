@@ -110,7 +110,7 @@ def output_name(params):
     if str(params.problemType) == "ProblemType.Compliance":
         name += 'Conly'+'_'
     name += str(params.nelx) + 'x' + str(params.nely) + '_'
-    name += 'mss' + str(params.maxSolverStep*4) + '_'
+    name += 'vmax' + str(params.volumeFracMax) + '_'
     return name
 ###
 

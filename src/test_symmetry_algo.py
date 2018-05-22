@@ -18,6 +18,8 @@ import scipy.misc
 import scipy
 import time
 
+import connection_table as ct
+
 def index_to_position(index, nelx, nely):
 	"""
 	Convert the index of a element to the centroid of the element
@@ -140,10 +142,10 @@ def main():
 	img_path='test_image/'
 #	img_name='frog'
 #	img_format='_216x216.gif'
-	img_name='acropolisi'
-#	img_name='pascha'
-#	img_format='_64x64.png'
-	img_format='_32x32.png'
+#	img_name='acropolisi'
+	img_name='pascha'
+	img_format='_64x64.png'
+#	img_format='_32x32.png'
 	#Using a test image in RGB format
 	img_array = scipy.misc.imread(img_path+img_name+img_format)
 	(nelx,nely) =[img_array.shape[i] for i in range(2)]
@@ -172,11 +174,12 @@ def main():
 	end = time.time()
 	print('Ellapsed time : ' + str(end-start)+'[s]')
 
-	plane_image = get_symmetry_image(a_array, c_array, nelx, nely)
-	scipy.misc.toimage(plane_image, cmin=0.0, cmax=1).save('output/'+str(nelx) + 'x'+str(nely) + 'plane_image.png')
+#	plane_image = get_symmetry_image(a_array, c_array, nelx, nely)
+#	scipy.misc.toimage(plane_image, cmin=0.0, cmax=1).save('output/'+str(nelx) + 'x'+str(nely) + 'plane_image.png')
 
-	print(connection_table.reshape(nelx,nely))
-	mapping_vector = construct_mapping_vector(connection_table)
+#	print(connection_table.reshape(nelx,nely))
+	mapping_vector = ct.construct_mapping_vector_sectors(5,nelx,nely)
+	print(mapping_vector)
 	for sublist in mapping_vector:
 		temp = img_list[sublist[0]]
 		for index in sublist :

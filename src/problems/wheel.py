@@ -11,7 +11,13 @@ class BoundaryConditions(base.BaseProblem):
         """
         Center only
         """
-        return [(nelx/2,nely/2,0),(nelx/2,nely/2,1)]
+        tab  = []
+        for x in range(nelx):
+            for y in range(nely):
+                if abs(((x-(nelx-1)/2.0)**2+(y-(nely-1)/2.0)**2)**.5 - (nelx-1)/20.0) < .5 :
+                    tab.append((x, y, 0))
+                    tab.append((x, y, 1))
+        return tab
 
     @staticmethod
     def set_forces(nelx, nely, f, params):
@@ -39,11 +45,17 @@ class BoundaryConditions(base.BaseProblem):
         Circle external elements are empty and border are full
         Center and ground points are set to be 1
         """
-        lb[nely/2 + nelx/2 * nely] = ub[(nely/2+1) + (nelx/2+1) * nely]
-#        lb[(nely-1) + (nelx/2+1) * nely] = ub[(nely-1) + (nelx/2+1) * nely]
+        #Inner circle
         for x in range(nelx):
             for y in range(nely):
-                if ((x-  nelx/2)**2 + (y - nely/2)**2)**.5 > nelx/2.0 + .5 :
+                if ((x + .5 -  nelx/2)**2 + (y + .5 - nely/2)**2)**.5 < nelx/20.0 + .5 :
+                    ub[y + x * nely] = lb[y + x * nely]
+                if abs(((x + .5 - nelx/2)**2+( y + .5 - nely/2)**2)**.5 - (nelx)/19.0) < 1 :
+                    lb[y + x * nely] = ub[y + x * nely]
+        #Outter circle
+        for x in range(nelx):
+            for y in range(nely):
+                if ((x + .5 -  nelx/2)**2 + (y + .5 - nely/2)**2)**.5 > nelx/2.0 + .5 :
                     ub[y + x * nely] = lb[y + x * nely]
                 if abs(((x-(nelx-1)/2.0)**2+(y-(nely-1)/2.0)**2)**.5 - (nelx-1)/2.0) < .5 :
                     lb[y + x * nely] = ub[y + x * nely]

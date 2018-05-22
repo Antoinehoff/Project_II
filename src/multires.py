@@ -41,15 +41,19 @@ def multires(nelx, nely, params, bc):
         if params.problemType == ProblemType.AppearanceWithMaxComplianceAndSymmetry \
         or params.problemType == ProblemType.ComplianceWithSymmetry:
             print("-> Constructing connection table...")
-            a_array = numpy.array(params.a)
-            c_array = numpy.array(params.c)
-            scale_matrix = numpy.array([[nelx,0],[0,nely]])
-            c_array = [numpy.dot(scale_matrix,c_array[i]) for i in range(len(c_array))]
-            a_array = [numpy.array(a/numpy.sqrt(numpy.dot(a,a))) for a in a_array]
-            print("a_array : " + str(a_array))
-            print("c_array : " + str(c_array))
-            connection_table = ct.construct_connection_table(a_array,c_array,nelx,nely)
-            mapping_vector = ct.construct_mapping_vector(connection_table)
+            if params.problemModule == "wheel" :
+                mapping_vector = ct.construct_mapping_vector_sectors(params.Nsector,nelx,nely)
+            else :
+                a_array = numpy.array(params.a)
+                c_array = numpy.array(params.c)
+                scale_matrix = numpy.array([[nelx,0],[0,nely]])
+                c_array = [numpy.dot(scale_matrix,c_array[i]) for i in range(len(c_array))]
+                a_array = [numpy.array(a/numpy.sqrt(numpy.dot(a,a))) for a in a_array]
+                print("a_array : " + str(a_array))
+                print("c_array : " + str(c_array))
+                connection_table = ct.construct_connection_table(a_array,c_array,nelx,nely)
+                mapping_vector = ct.construct_mapping_vector(connection_table)
+
             if params.problemType==ProblemType.AppearanceWithMaxComplianceAndSymmetry:
                 params.complianceMax = 0
                 solver = Solver(nelx, nely, params, ProblemType.ComplianceWithSymmetry,\

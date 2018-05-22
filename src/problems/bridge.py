@@ -8,8 +8,7 @@ class BoundaryConditions(base.BaseProblem):
         """
         Left and right down corner are fixed
         """
-        return [(0, nely - 1, 1), (nelx - 1, nely - 1, 1)]
-#        return [(0, nely - 1, 0), (0, nely - 1, 1), (nelx - 1, nely - 1, 0), (nelx - 1, nely - 1, 1)]
+        return [(0, nely - 1, 0), (0, nely - 1, 1), (nelx - 1, nely - 1, 0), (nelx - 1, nely - 1, 1)]
 
     @staticmethod
     def set_forces(nelx, nely, f, params):
@@ -27,6 +26,6 @@ class BoundaryConditions(base.BaseProblem):
         """
         for x in range(nelx):
             lb[0 + x * nely] = ub[0 + x * nely]
-#        for y in range(nely):
-#            lb[y + 0 * nely] = ub[y + 0 * nely]
-#            lb[y + (nelx-1) * nely] = ub[y + (nelx-1) * nely]
+#        for y in range(nely/2,nely):
+#            for x in range(nelx/5,4*nelx/5):
+#                ub[y + x * nely] = lb[y + x * nely]

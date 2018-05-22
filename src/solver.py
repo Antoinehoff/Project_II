@@ -248,14 +248,6 @@ class Solver(object):
         # Launch optimization
         x = self.opt.optimize(x)
         print("* Last optimum value = " + str(self.opt.last_optimum_value()))
-        ### Tests:
-#        for i in range(self.nelx):
-#            x[self.nely * i + 10]=1
-#        for sublist in self.mapping_vector:
-#            temp = x[sublist[0]]
-#            for index in sublist:
-#                x[index]=temp
-        ###
         return x
 
     def last_optimum_value(self):

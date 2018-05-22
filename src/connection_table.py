@@ -91,8 +91,7 @@ def construct_connection_table(a_array, c_array, nelx, nely):
 	"""
 	Simple algorithm O(nelx*nely) to construct the table containing
 	for an element i, outside the design domain, its symmetric
-	element j inside the design domain. connection_table[i]=j if i is outside the
-	domain, =-1 if it is inside the domain or have no symmetric element.
+	element j inside the design domain. Symmetry planes variant.
 	"""
 	connection_table = numpy.array(range(nelx*nely))
 	for n in range(numpy.shape(a_array)[0]):
@@ -107,6 +106,58 @@ def construct_connection_table(a_array, c_array, nelx, nely):
 #	print(connection_table.reshape(nelx,nely))
 #	sys.exit('Stop')
 	return connection_table
+
+
+def construct_mapping_vector_sectors(Nsector, nelx, nely):
+	"""
+	Simple algorithm O(nelx*nely) to construct the table containing
+	for an element i, outside the design domain, its symmetric
+	element j inside the design domain. Symmetry sectors variant.
+	"""
+	mapping_vector = [[i] for i in range(nelx*nely)]
+	phi = 2*numpy.pi/Nsector
+	c = numpy.array([nelx/2,nely/2]); #Center of the circle
+	for i in range(nelx*nely):
+		X_i = index_to_position(i,nelx,nely) - c #All positions are centered to the circle
+		r_i = numpy.sqrt(numpy.dot(X_i,X_i))
+		if r_i <= nelx/2 :
+			phi_i = numpy.arctan2(X_i[1],X_i[0])
+			if phi_i < phi/2 :
+				for j in range(1,Nsector):
+					#Symmetry with others sectors
+					theta = phi_i + phi*j
+					x_sym = r_i*numpy.cos(theta)
+					y_sym = r_i*numpy.sin(theta)
+					sym_pos = numpy.array([x_sym,y_sym]) + c
+					sym_idx = position_to_index(sym_pos,nelx,nely)
+					mapping_vector[i].append(sym_idx)
+					#middle sector symmetry
+					x_sym = r_i*numpy.cos(theta + phi - 2 * phi_i)
+					y_sym = r_i*numpy.sin(theta + phi - 2 * phi_i)
+					sym_pos = numpy.array([x_sym,y_sym]) + c
+					sym_idx = position_to_index(sym_pos,nelx,nely)
+					mapping_vector[i].append(sym_idx)
+
+
+	#print(numpy.array(mapping_vector).reshape(nelx,nely))
+	#sys.exit('Stop')
+	return mapping_vector
+
+def get_phi(X):
+	x = X[0]
+	y = X[1]
+	phi = 0
+	if x > 0 and y >= 0 :
+		phi = numpy.arctan(y/x)
+	if x > 0 and y < 0 :
+		phi = numpy.arctan(y/x) + 2 * numpy.pi
+	if x < 0 :
+		phi = numpy.arctan(y/x) + numpy.pi
+	if x == 0 and y > 0 :
+		phi = numpy.pi/2
+	if x == 0 and y < 0 :
+		phi = 3 * numpy.pi/2
+	return phi
 
 def construct_mapping_vector(connection_table):
 	mapping_vector = [[] for i in range(len(connection_table))]
