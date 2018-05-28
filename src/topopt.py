@@ -54,14 +54,14 @@ class TopoptProblem(object):
         # BC's and support
         self.bc = bc
         self.problemOptions = params.ProblemOptions
-        fixed_coords = self.bc.get_fixed_nodes(nelx, nely, self.problemOptions)
+        fixed_coords = self.bc.get_fixed_nodes(nelx, nely, params)
         self.fixed = numpy.unique([2 * ((nely + 1) * x + y) + c for (x, y, c) in fixed_coords])
         self.free = numpy.setdiff1d(numpy.arange(self.ndof), self.fixed)
 
         # Solution and RHS vectors
         self.u = numpy.zeros((self.ndof, 1))
         self.f = numpy.zeros((self.ndof, 1))
-        bc.set_forces(nelx, nely, self.f, params.problemOptions)
+        bc.set_forces(nelx, nely, self.f, params)
 
         # Per element compliance
         self.ce = numpy.ones(nely * nelx)

@@ -29,7 +29,7 @@ class Solver(object):
         # Set bounds
         lb = numpy.array(params.densityMin * numpy.ones(n, dtype=float))
         ub = numpy.array(1.0 * numpy.ones(n, dtype=float))
-        bc.set_passive_elements(nelx, nely, lb, ub, params.problemOptions)
+        bc.set_passive_elements(nelx, nely, lb, ub, params)
         self.opt.set_upper_bounds(ub)
         self.opt.set_lower_bounds(lb)
 

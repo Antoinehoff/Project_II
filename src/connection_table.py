@@ -14,7 +14,7 @@ import importlib
 import sys
 
 # Third party libs
-import numpy
+import numpy as np
 import scipy.misc
 import scipy
 
@@ -22,7 +22,7 @@ def index_to_position(index, nelx, nely):
 	"""
 	Convert the index of a element to the centroid of the element
 	"""
-	pos = numpy.array([(index / (nely))+.5, int(index%(nely))+.5])
+	pos = np.array([(index / (nely))+.5, int(index%(nely))+.5])
 	return pos
 
 def position_to_index(pos, nelx, nely):
@@ -37,22 +37,22 @@ def add_symmetry_planes(a_array, c_array, a, c, empty = 0):
 	Use to add a new symmetry plane to the problem
 	"""
 	if len(a_array)==0 or len(c_array)==0 :
-		a_array = [numpy.array(a/numpy.sqrt(numpy.dot(a,a)))]
-		c_array = [numpy.array(c)]
+		a_array = [np.array(a/np.sqrt(np.dot(a,a)))]
+		c_array = [np.array(c)]
 	else :
-		a = a/numpy.sqrt(numpy.dot(a,a))
-		a_array = numpy.append(a_array,[a],0)
-		c_array = numpy.append(c_array,[c],0)
+		a = a/np.sqrt(np.dot(a,a))
+		a_array = np.append(a_array,[a],0)
+		c_array = np.append(c_array,[c],0)
 	return a_array, c_array
 
 def get_symmetry_image(a_array, c_array, nelx, nely):
 	"""
 	Create an image with line showing the symmetry planes
 	"""
-	image = numpy.ones(nelx*nely)
+	image = np.ones(nelx*nely)
 	Xmin = index_to_position(0, nelx, nely)
 	Xmax = index_to_position(nelx*nely-1, nelx, nely)
-	rmax = numpy.sqrt(numpy.dot(Xmax-Xmin,Xmax-Xmin)) #Length scale of mesh
+	rmax = np.sqrt(np.dot(Xmax-Xmin,Xmax-Xmin)) #Length scale of mesh
 	for i in range(nelx*nely):
 		X_i = index_to_position(i, nelx, nely)
 		if(in_domain(X_i, a_array, c_array)==0):
@@ -66,10 +66,10 @@ def in_domain(X, a_array, c_array):
 	Check is a given point is inside or outside the design domain
 	"""
 	flag = 1
-	for n in range(numpy.shape(a_array)[0]):
+	for n in range(np.shape(a_array)[0]):
 		a = a_array[n]
 		c = c_array[n]
-		dist = numpy.dot(X-c,a)
+		dist = np.dot(X-c,a)
 		if(dist > 0.7):
 			flag = 0
 		if(abs(dist)<0.7):
@@ -81,7 +81,7 @@ def get_symmetric_element(index, a, c, nelx, nely):
 	Return the index of the symmetric element w.r.t. a plane (a,c)
 	"""
 	x_i = index_to_position(index,nelx,nely)
-	dist = numpy.dot(x_i-c,a)
+	dist = np.dot(x_i-c,a)
 	x_proj = x_i - dist * a
 	x_sym = x_proj - dist * a
 	index_sym = position_to_index(x_sym,nelx,nely)
@@ -93,8 +93,8 @@ def construct_connection_table(a_array, c_array, nelx, nely):
 	for an element i, outside the design domain, its symmetric
 	element j inside the design domain. Symmetry planes variant.
 	"""
-	connection_table = numpy.array(range(nelx*nely))
-	for n in range(numpy.shape(a_array)[0]):
+	connection_table = np.array(range(nelx*nely))
+	for n in range(np.shape(a_array)[0]):
 		a = a_array[n]
 		c = c_array[n]
 		for i in range(nelx*nely):
@@ -108,56 +108,80 @@ def construct_connection_table(a_array, c_array, nelx, nely):
 	return connection_table
 
 
-def construct_mapping_vector_sectors(Nsector, nelx, nely):
+def construct_mapping_vector_wheel(Nsector, nelx, nely):
 	"""
 	Simple algorithm O(nelx*nely) to construct the table containing
 	for an element i, outside the design domain, its symmetric
 	element j inside the design domain. Symmetry sectors variant.
 	"""
 	mapping_vector = [[i] for i in range(nelx*nely)]
-	phi = 2*numpy.pi/Nsector
-	c = numpy.array([nelx/2,nely/2]); #Center of the circle
+	phi = 2*np.pi/Nsector
+	c = np.array([nelx/2,nely/2]); #Center of the circle
 	for i in range(nelx*nely):
 		X_i = index_to_position(i,nelx,nely) - c #All positions are centered to the circle
-		r_i = numpy.sqrt(numpy.dot(X_i,X_i))
+		r_i = np.sqrt(np.dot(X_i,X_i))
 		if r_i <= nelx/2 :
-			phi_i = numpy.arctan2(X_i[1],X_i[0])
+			phi_i = np.arctan2(X_i[1],X_i[0])
 			if phi_i < phi/2 :
-				for j in range(1,Nsector):
-					#Symmetry with others sectors
+				for j in range(Nsector):
 					theta = phi_i + phi*j
-					x_sym = r_i*numpy.cos(theta)
-					y_sym = r_i*numpy.sin(theta)
-					sym_pos = numpy.array([x_sym,y_sym]) + c
-					sym_idx = position_to_index(sym_pos,nelx,nely)
-					mapping_vector[i].append(sym_idx)
-					#middle sector symmetry
-					x_sym = r_i*numpy.cos(theta + phi - 2 * phi_i)
-					y_sym = r_i*numpy.sin(theta + phi - 2 * phi_i)
-					sym_pos = numpy.array([x_sym,y_sym]) + c
+					#Symmetry with others sectors
+					if j > 0 :
+						x_sym = r_i*np.cos(theta)
+						y_sym = r_i*np.sin(theta)
+						sym_pos = np.array([x_sym,y_sym]) + c
+						sym_idx = position_to_index(sym_pos,nelx,nely)
+						mapping_vector[i].append(sym_idx)
+					#Middle sector symmetry
+					x_sym = r_i*np.cos(theta + phi - 2 * phi_i)
+					y_sym = r_i*np.sin(theta + phi - 2 * phi_i)
+					sym_pos = np.array([x_sym,y_sym]) + c
 					sym_idx = position_to_index(sym_pos,nelx,nely)
 					mapping_vector[i].append(sym_idx)
 
 
-	#print(numpy.array(mapping_vector).reshape(nelx,nely))
+	#print(np.array(mapping_vector).reshape(nelx,nely))
 	#sys.exit('Stop')
 	return mapping_vector
 
-def get_phi(X):
-	x = X[0]
-	y = X[1]
-	phi = 0
-	if x > 0 and y >= 0 :
-		phi = numpy.arctan(y/x)
-	if x > 0 and y < 0 :
-		phi = numpy.arctan(y/x) + 2 * numpy.pi
-	if x < 0 :
-		phi = numpy.arctan(y/x) + numpy.pi
-	if x == 0 and y > 0 :
-		phi = numpy.pi/2
-	if x == 0 and y < 0 :
-		phi = 3 * numpy.pi/2
-	return phi
+def construct_mapping_vector_rockingchair(Nsector, nelx, nely):
+	"""
+	Simple algorithm O(nelx*nely) to construct the table containing
+	for an element i, outside the design domain, its symmetric
+	element j inside the design domain. Symmetry sectors variant.
+	"""
+	if Nsector%2 == 0:
+		sys.exit('ABORT : Please put an odd number of sector in json file')
+
+	mapping_vector = [[i] for i in range(nelx*nely)]
+	phi = np.pi/Nsector
+	c = np.array([nelx/2,nely/2]); #Center of the circle
+	for i in range(nelx*nely):
+		X_i = index_to_position(i,nelx,nely) - c #All positions are centered to the circle
+		r_i = np.sqrt(np.dot(X_i,X_i))
+		if r_i <= nelx/2 :
+			phi_i = np.arctan2(X_i[1],X_i[0])
+			if phi_i > 0 and phi_i < phi:
+				for j in range(Nsector):
+					theta = phi_i + phi*j
+					#Symmetry with others sectors
+					if j > 0 :
+						x_sym = r_i*np.cos(theta)
+						y_sym = r_i*np.sin(theta)
+						sym_pos = np.array([x_sym,y_sym]) + c
+						sym_idx = position_to_index(sym_pos,nelx,nely)
+						mapping_vector[i].append(sym_idx)
+					#middle sector symmetry
+					x_sym = r_i*np.cos(theta + phi - 2 * phi_i)
+					y_sym = r_i*np.sin(theta + phi - 2 * phi_i)
+					sym_pos = np.array([x_sym,y_sym]) + c
+					sym_idx = position_to_index(sym_pos,nelx,nely)
+					#mapping_vector[i].append(sym_idx)
+
+
+	#print(np.array(mapping_vector).reshape(nelx,nely))
+	#sys.exit('Stop')
+	return mapping_vector
 
 def construct_mapping_vector(connection_table):
 	mapping_vector = [[] for i in range(len(connection_table))]
@@ -191,19 +215,19 @@ def apply_symm_to_grad(grad,mapping_vector):
 
 def in_domain(X, a_array, c_array, epsilon, rmax):
 	flag = True
-	for n in range(numpy.shape(a_array)[0]):
+	for n in range(np.shape(a_array)[0]):
 		a = a_array[n]
 		c = c_array[n]
-		if(numpy.dot(X-c,a) > epsilon*rmax):
+		if(np.dot(X-c,a) > epsilon*rmax):
 			flag = False
 	return flag
 
 def in_domain(X, a_array, c_array):
 	flag = 1
-	for n in range(numpy.shape(a_array)[0]):
+	for n in range(np.shape(a_array)[0]):
 		a = a_array[n]
 		c = c_array[n]
-		dist = numpy.dot(X-c,a)
+		dist = np.dot(X-c,a)
 		if(dist > 0.7):
 			flag = 0
 		if(abs(dist)<0.7):
@@ -215,7 +239,7 @@ def construct_connection_table(a_array, c_array, nelx, nely):
 	print 'Xmin = {0}'.format(Xmin)
 	Xmax = index_to_position(nelx*nely-1, nelx, nely)
 	print 'Xmax = {0}'.format(Xmax)
-	rmax = numpy.sqrt(numpy.dot(Xmax-Xmin,Xmax-Xmin)) #Length scale of mesh
+	rmax = np.sqrt(np.dot(Xmax-Xmin,Xmax-Xmin)) #Length scale of mesh
 	print 'rmax = {0}'.format(rmax)
 	epsilon_1 = 0.000000
 	epsilon_2 = 0.0000001
@@ -223,26 +247,26 @@ def construct_connection_table(a_array, c_array, nelx, nely):
 	k=0 #Counter on elements in the interior of the plane
 	m=0
 	alpha_ij = 0
-	connection_table = numpy.ones(nelx*nely)*-1 #initilaized at -1 everywhere
-	for n in range(numpy.shape(a_array)[0]): #For each symmetry plane...
+	connection_table = np.ones(nelx*nely)*-1 #initilaized at -1 everywhere
+	for n in range(np.shape(a_array)[0]): #For each symmetry plane...
 		a = a_array[n]
 		c = c_array[n]
 		for i in range(nelx*nely): #1st Loop over all elements
 			X_i = index_to_position(i, nelx, nely) #Centroid of element
 			if(not in_domain(X_i, a_array, c_array, epsilon_1, rmax)):
 					k=k+1
-					X_i_proj = X_i - (numpy.dot(X_i-c,a))*a
+					X_i_proj = X_i - (np.dot(X_i-c,a))*a
 					dmin = rmax
 					for j in range(nelx*nely):
 						X_j = index_to_position(j, nelx, nely)
-						if(numpy.dot(X_j-c,a) < rmax * epsilon_1):
-							temp1 = numpy.dot(X_i_proj - X_i, X_i_proj - X_j)
-							temp2 = numpy.linalg.norm(X_i_proj - X_i)*numpy.linalg.norm(X_i_proj - X_j) + epsilon_2
+						if(np.dot(X_j-c,a) < rmax * epsilon_1):
+							temp1 = np.dot(X_i_proj - X_i, X_i_proj - X_j)
+							temp2 = np.linalg.norm(X_i_proj - X_i)*np.linalg.norm(X_i_proj - X_j) + epsilon_2
 							alpha_ij = temp1 / temp2
 							if(alpha_ij < epsilon_2-1): #Not the same as in Kosaka and Swan paper
-								if(abs(numpy.linalg.norm(X_i_proj - X_i)-numpy.linalg.norm(X_i_proj - X_j))<dmin):
+								if(abs(np.linalg.norm(X_i_proj - X_i)-np.linalg.norm(X_i_proj - X_j))<dmin):
 									nmast=j
-									dmin=abs(numpy.linalg.norm(X_i_proj - X_i)-numpy.linalg.norm(X_i_proj - X_j))
+									dmin=abs(np.linalg.norm(X_i_proj - X_i)-np.linalg.norm(X_i_proj - X_j))
 									m=m+1
 									connection_table[i]=nmast
 	print '#elements : {0} '.format(nelx*nely)
@@ -255,15 +279,15 @@ def construct_connection_table_parallel(a_array, c_array, nelx, nely):
 	start = time.time()
 	Xmin = index_to_position(0, nelx, nely)
 	Xmax = index_to_position(nelx*nely-1, nelx, nely)
-	rmax = numpy.sqrt(numpy.dot(Xmax-Xmin,Xmax-Xmin)) #Length scale of mesh
+	rmax = np.sqrt(np.dot(Xmax-Xmin,Xmax-Xmin)) #Length scale of mesh
 	epsilon_1 = 0.0000001
 	epsilon_2 = 0.0000001
 	nmast = 0
 	alpha_ij = 0
-	connection_table = numpy.ones(nelx*nely)*-1
+	connection_table = np.ones(nelx*nely)*-1
 	num_cores = multiprocessing.cpu_count()
 	temp=[]
-	for n in range(numpy.shape(a_array)[0]): #For each symmetry plane...
+	for n in range(np.shape(a_array)[0]): #For each symmetry plane...
 		a = a_array[n]
 		c = c_array[n]
 		temp = Parallel(n_jobs=num_cores)\
@@ -282,18 +306,18 @@ def parallelProcess(a_array, c_array, n, nelx, nely, rmax, epsilon_1, epsilon_2,
 	nmast=-1
 	X_i = index_to_position(i, nelx, nely) #Centroid of element
 	if( not in_domain(X_i, a_array, c_array, epsilon_1, rmax)):
-		X_i_proj = X_i - numpy.dot(X_i-c,a)*a
+		X_i_proj = X_i - np.dot(X_i-c,a)*a
 		dmin = rmax
 		for j in range(nelx*nely):
 			X_j = index_to_position(j, nelx, nely)
-			if(i!=j and numpy.dot(X_j-c,a) < rmax * epsilon_1):
-				temp1 = numpy.dot(X_i_proj - X_i, X_i_proj - X_j)
-				temp2 = numpy.linalg.norm(X_i_proj - X_i)*numpy.linalg.norm(X_i_proj - X_j) + epsilon_2
+			if(i!=j and np.dot(X_j-c,a) < rmax * epsilon_1):
+				temp1 = np.dot(X_i_proj - X_i, X_i_proj - X_j)
+				temp2 = np.linalg.norm(X_i_proj - X_i)*np.linalg.norm(X_i_proj - X_j) + epsilon_2
 				alpha_ij = temp1 / temp2
 				if(alpha_ij < epsilon_2-1): #Not the same as in Kosaka and Swan paper	if(alpha_ij < epsilon_2-1): #Not the same as in Kosaka and Swan paper
-					if(abs(numpy.linalg.norm(X_i_proj - X_i)-numpy.linalg.norm(X_i_proj - X_j))<dmin):
+					if(abs(np.linalg.norm(X_i_proj - X_i)-np.linalg.norm(X_i_proj - X_j))<dmin):
 						nmast=j
-						dmin=abs(numpy.linalg.norm(X_i_proj - X_i)-numpy.linalg.norm(X_i_proj - X_j))
+						dmin=abs(np.linalg.norm(X_i_proj - X_i)-np.linalg.norm(X_i_proj - X_j))
 	return nmast
 
 """

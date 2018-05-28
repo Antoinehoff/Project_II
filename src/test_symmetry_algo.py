@@ -178,7 +178,7 @@ def main():
 #	scipy.misc.toimage(plane_image, cmin=0.0, cmax=1).save('output/'+str(nelx) + 'x'+str(nely) + 'plane_image.png')
 
 #	print(connection_table.reshape(nelx,nely))
-	mapping_vector = ct.construct_mapping_vector_sectors(5,nelx,nely)
+	mapping_vector = ct.construct_mapping_vector_wheel(3,nelx,nely)
 	print(mapping_vector)
 	for sublist in mapping_vector:
 		temp = img_list[sublist[0]]

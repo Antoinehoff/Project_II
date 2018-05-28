@@ -42,7 +42,9 @@ def multires(nelx, nely, params, bc):
         or params.problemType == ProblemType.ComplianceWithSymmetry:
             print("-> Constructing connection table...")
             if params.problemModule == "wheel" :
-                mapping_vector = ct.construct_mapping_vector_sectors(params.Nsector,nelx,nely)
+                mapping_vector = ct.construct_mapping_vector_wheel(params.Nsector,nelx,nely)
+            elif params.problemModule in ["rockingchair", "rockingchair2"] :
+                mapping_vector = ct.construct_mapping_vector_rockingchair(params.Nsector,nelx,nely)
             else :
                 a_array = numpy.array(params.a)
                 c_array = numpy.array(params.c)

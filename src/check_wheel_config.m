@@ -50,9 +50,11 @@ fy = dataArray{:, 4};
 clearvars filename delimiter startRow formatSpec fileID dataArray ans;
 
 %% plot
-r = max(x)/2;
-xc = max(x)/2;
-yc = max(y)/2;
+nx = 50;
+ny = 50;
+r = nx/2;
+xc = nx/2;
+yc = ny/2;
 th = 0:pi/50:2*pi;
 xunit = r * cos(th) + xc;
 yunit = r * sin(th) + yc;
@@ -65,5 +67,5 @@ quiver(x,y,fx,fy)
 plot(xunit,yunit,'--r')
 title("Configuration of fixed nodes and force for wheel problem")
 legend("fixed nodes","forces")
-xlim([0 max(x)])
-ylim([0 max(y)])
+xlim([0 nx])
+ylim([0 ny])
