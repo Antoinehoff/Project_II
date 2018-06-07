@@ -183,6 +183,36 @@ def construct_mapping_vector_rockingchair(Nsector, nelx, nely):
 	#sys.exit('Stop')
 	return mapping_vector
 
+def construct_mapping_vector_shelf(params,nelx,nely):
+	"""
+	simple method to impose sector copy between the rows of
+	the shelf vertically
+	"""
+	N=params.Nsector
+	mapping_vector = [[i] for i in range(nelx*nely)]
+	for i in range(nelx*nely):
+		X_i = index_to_position(i,nelx,nely)
+		if X_i[1]< nely*1.0/N :
+			for j in range(N):
+				#Symmetry with others sectors
+				if j > 0 :
+					x_sym = X_i[0]
+					y_sym = X_i[1] + j * nely*1.0/N
+					sym_pos = np.array([x_sym,y_sym])
+					sym_idx = position_to_index(sym_pos,nelx,nely)
+					if sym_idx not in mapping_vector[i] : mapping_vector[i].append(sym_idx)
+			for index in mapping_vector[i] : mapping_vector[index] = mapping_vector[i]
+		#Vertical symmetry
+		if params.vert_sym :
+			if X_i[0] < nelx/2.0 :
+				x_sym = nelx - X_i[0]
+				y_sym = X_i[1]
+				sym_pos = np.array([x_sym,y_sym])
+				sym_idx = position_to_index(sym_pos,nelx,nely)
+				mapping_vector[i].append(sym_idx)
+				mapping_vector[sym_idx].append(i)
+	return mapping_vector
+
 def construct_mapping_vector(connection_table):
 	mapping_vector = [[] for i in range(len(connection_table))]
 	for i in range(len(connection_table)):

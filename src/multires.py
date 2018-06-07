@@ -45,6 +45,8 @@ def multires(nelx, nely, params, bc):
                 mapping_vector = ct.construct_mapping_vector_wheel(params.Nsector,nelx,nely)
             elif params.problemModule in ["rockingchair", "rockingchair2"] :
                 mapping_vector = ct.construct_mapping_vector_rockingchair(params.Nsector,nelx,nely)
+            elif params.problemModule == "shelf_sectors" :
+                mapping_vector = ct.construct_mapping_vector_shelf(params,nelx,nely)
             else :
                 a_array = numpy.array(params.a)
                 c_array = numpy.array(params.c)
